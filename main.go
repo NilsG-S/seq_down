@@ -12,12 +12,20 @@ import (
 func main() {
 	var (
 		err   error
+		path  string
 		url   string
 		cont  string
 		next  string
 		attr  string
 		count int
 	)
+
+	fmt.Print("Enter save path: ")
+	_, err = fmt.Scanf("%s\n", &path)
+	if err != nil {
+		fmt.Println("Reading save path failed: ", err)
+		return
+	}
 
 	fmt.Print("Enter URL: ")
 	_, err = fmt.Scanf("%s\n", &url)
@@ -73,7 +81,7 @@ func main() {
 		// TODO: The response doesn't supply a name, so either have the user provide one or reference the crawled page
 		// TODO: The URL should provide a file type
 		var file *os.File
-		file, err = os.Create("/mnt/c/Users/nilsg/Downloads/test/" + strconv.Itoa(i) + ".jpg")
+		file, err = os.Create(path + strconv.Itoa(i) + ".jpg")
 		if err != nil {
 			fmt.Println(err)
 			return
