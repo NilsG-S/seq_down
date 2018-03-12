@@ -18,9 +18,9 @@ type Crawler struct {
 	// Number of downloaded items
 	count int
 	// Buffered channel of URLs to target
-	targets chan string
+	Targets chan string
 	// Buffered channel of content Readers
-	output chan io.Reader
+	Output chan io.Reader
 	// Selector (id, class, etc.) of the HTML element for next
 	next string
 	// Link can be href, src, etc.
@@ -38,8 +38,8 @@ func New(init, next, attr, cont string) (*Crawler, error) {
 		content:  cont,
 		ranges:   false,
 		count, 0,
-		targets: make(chan string, 128),
-		output:  make(chan io.Reader, 128),
+		Targets: make(chan string, 128),
+		Output:  make(chan io.Reader, 128),
 	}
 
 	var doc *goquery.Document
@@ -66,15 +66,16 @@ func New(init, next, attr, cont string) (*Crawler, error) {
 	}
 
 	// Put initial html page into targets
-	out.targets <- init
+	out.Targets <- init
 
 	return out, nil
 }
 
 // A function to spin off go routines for each new target
 func (c *Crawler) Start(count int) {
+	// TODO: Remove start, have user implement functionality?
 	for c.count < count {
-		url, ok := <-c.targets
+		url, ok := <-c.Targets
 		// If channel is closed externally
 		if !ok {
 			return
@@ -90,34 +91,45 @@ func (c *Crawler) Start(count int) {
 func (c *Crawler) Handle(url string) {
 	var err error
 
+	// TODO: Use channels to handle these errors
 	var doc *goquery.Document
 	doc, err = goquery.NewDocument(url)
 	if err != nil {
-		// TODO: Find some better way of handling these errors
-		fmt.Printf("Download of %v failed", url)
+		fmt.Printf("Couldn't get HTML for %v", url)
 		return
 	}
 
+	go c.Next(url)
+	go c.Content(url)
+}
+
+// A function to get the next target (should be called first)
+func (c *Crawler) Next(doc *goquery.Document) {
+	// TODO: Use channels to handle errors
+	next, ok := doc.Find(c.next).First().Attr(c.nextAttr)
+	if !ok {
+		fmt.Printf("Couldn't find next for %v", doc.Url)
+		return
+	}
+
+	c.Targets <- next
+}
+
+// A function to get the current content (should handle range restarts if necessary)
+func (c *Crawler) Content(doc *goquery.Document) {
+	// TODO: Use channels to handle errors
 	get, ok := doc.Find(c.content).First().Attr("src")
 	if !ok {
-		fmt.Printf("Download of %v failed", url)
+		fmt.Printf("Couldn't find src for %v", doc.Url)
 		return
 	}
 
 	var res *http.Response
 	res, err = http.Get(get)
 	if err != nil {
-		fmt.Printf("Download of %v failed", url)
+		fmt.Printf("Download of %v failed", doc.Url)
 		return
 	}
 
-	c.output <- res.Body
+	c.Output <- res.Body
 }
-
-func (c *Crawler) GetOutput() chan io.Reader {
-	return c.output
-}
-
-// A function to get the next target (should be called first)
-
-// A function to get the current content (should handle range restarts if necessary)
