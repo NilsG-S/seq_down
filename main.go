@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 func test1() {
@@ -59,7 +61,7 @@ func test2() {
 	fmt.Println("Success!")
 }
 
-func main() {
+func test3() {
 	url := ""
 	var err error
 
@@ -85,4 +87,20 @@ func main() {
 			return
 		}
 	}
+}
+
+func main() {
+	doc, err := goquery.NewDocument("")
+	if err != nil {
+		fmt.Println("An error has occurred!", err)
+	}
+
+	doc.Find("#image").Each(func(i int, s *goquery.Selection) {
+		h, e := s.Attr("src")
+		if !e {
+			fmt.Println("Couldn't get attribute!")
+		}
+
+		fmt.Println(h)
+	})
 }
