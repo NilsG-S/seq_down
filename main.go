@@ -95,6 +95,7 @@ func main() {
 		fmt.Println("An error has occurred!", err)
 	}
 
+	// Getting content
 	doc.Find("#image").Each(func(i int, s *goquery.Selection) {
 		h, e := s.Attr("src")
 		if !e {
@@ -103,4 +104,7 @@ func main() {
 
 		fmt.Println(h)
 	})
+
+	// Getting next
+	fmt.Println(doc.Find(".next_page").First().Attr("href"))
 }

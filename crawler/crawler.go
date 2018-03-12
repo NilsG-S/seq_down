@@ -9,9 +9,14 @@ type Crawler struct {
 	// Buffered channel of URLs to target
 	targets chan string
 	// ID of the HTML element that gets the next sequential content
-	next string
+	// Doesn't always work with id, can be class and href
+	next     string
+	nextAttr string
 	// ID of the content HTML element
-	content string
+	// Doesn't always work with id, img, and src
+	// TODO: future improvement?
+	content     string
+	contentAttr string
 	// Do I need something to handle file naming?
 	// If I want a count, I'll need to mutex it
 }
