@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -11,36 +10,60 @@ import (
 )
 
 func main() {
-	var err error
-
-	reader := bufio.NewReader(os.Stdin)
+	var (
+		err   error
+		url   string
+		cont  string
+		next  string
+		attr  string
+		count int
+	)
 
 	fmt.Print("Enter URL: ")
-	url, _ := reader.ReadString('\n')
+	_, err = fmt.Scanf("%s\n", &url)
+	if err != nil {
+		fmt.Println("Reading URL failed: ", err)
+		return
+	}
 
 	fmt.Print("Enter content selector: ")
-	cont, _ := reader.ReadString('\n')
+	_, err = fmt.Scanf("%s\n", &cont)
+	if err != nil {
+		fmt.Println("Reading content selector failed: ", err)
+		return
+	}
 
 	fmt.Print("Enter next selector: ")
-	next, _ := reader.ReadString('\n')
+	_, err = fmt.Scanf("%s\n", &next)
+	if err != nil {
+		fmt.Println("Reading next selector failed: ", err)
+		return
+	}
 
 	fmt.Print("Enter next attribute: ")
-	attr, _ := reader.ReadString('\n')
+	_, err = fmt.Scanf("%s\n", &attr)
+	if err != nil {
+		fmt.Println("Reading next attribute failed: ", err)
+		return
+	}
 
 	fmt.Print("Enter amount to download: ")
-	countStr, _ := reader.ReadString('\n')
-	count, _ := strconv.Atoi(countStr)
-	fmt.Println(cont)
-
-	crawler, err := crawler.New(url, next, attr, cont)
+	_, err = fmt.Scanf("%d\n", &count)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Reading count failed: ", err)
+		return
 	}
-	crawler.Start(count)
+
+	craw, err := crawler.New(url, next, attr, cont)
+	if err != nil {
+		fmt.Println("Setup failed: ", err)
+		return
+	}
+	go craw.Start(count)
 
 	// TODO: this should be in a go routine
 	for i := 0; i < count; i++ {
-		body, ok := <-crawler.Output
+		body, ok := <-craw.Output
 		if !ok {
 			fmt.Println("Output channel closed")
 			return
