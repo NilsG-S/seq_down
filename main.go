@@ -1,33 +1,34 @@
 package main
 
 import (
-	// "bufio"
+	"bufio"
 	"fmt"
+	"golang.org/x/net/html"
 	"io"
 	"net/http"
 	"os"
 )
 
-// func main() {
-// 	reader := bufio.NewReader(os.Stdin)
-//
-// 	fmt.Print("Enter URL: ")
-// 	url, _ := reader.ReadString('\n')
-//
-// 	res, _ := http.Head(url)
-// 	maps := res.Header
-// 	/*
-// 		When checking for the "Accepts-Ranges" header, you
-// 		have to target the file server, not the HTML page.
-// 		HTML pages don't typically need the header.
-// 	*/
-//
-// 	for k, v := range maps {
-// 		fmt.Println(k, v)
-// 	}
-// }
+func test1() {
+	reader := bufio.NewReader(os.Stdin)
 
-func main() {
+	fmt.Print("Enter URL: ")
+	url, _ := reader.ReadString('\n')
+
+	res, _ := http.Head(url)
+	maps := res.Header
+	/*
+		When checking for the "Accepts-Ranges" header, you
+		have to target the file server, not the HTML page.
+		HTML pages don't typically need the header.
+	*/
+
+	for k, v := range maps {
+		fmt.Println(k, v)
+	}
+}
+
+func test2() {
 	// Sometimes image links require authorization that is generated on page load
 	// TODO: can a web crawler get this authorization?
 	// EDIT: yes, it seems that it can
@@ -56,4 +57,32 @@ func main() {
 	file.Close()
 
 	fmt.Println("Success!")
+}
+
+func main() {
+	url := ""
+	var err error
+
+	var res *http.Response
+	res, err = http.Get(url)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer res.Body.Close()
+
+	z := html.NewTokenizer(res.Body)
+	for {
+		tt := z.Next()
+		switch tt {
+		case html.StartTagToken:
+			tn, _ := z.TagName()
+			fmt.Println(tn)
+		case html.ErrorToken:
+			fmt.Println("Error!")
+			return
+		case html.EndTagToken:
+			fmt.Println("Success!")
+			return
+		}
+	}
 }

@@ -1,5 +1,8 @@
 package crawler
 
+// TODO: maybe have the crawler put the response bodies in a chan of io.Reader
+// Then let the consumer handle file saving
+
 type Crawler struct {
 	// Indicates whether the target website accepts ranges
 	ranges bool
