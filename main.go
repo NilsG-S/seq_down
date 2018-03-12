@@ -3,108 +3,64 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"golang.org/x/net/html"
 	"io"
-	"net/http"
 	"os"
+	"strconv"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/NilsG-S/seq_down/crawler"
 )
 
-func test1() {
+func main() {
+	var err error
+
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter URL: ")
 	url, _ := reader.ReadString('\n')
 
-	res, _ := http.Head(url)
-	maps := res.Header
-	/*
-		When checking for the "Accepts-Ranges" header, you
-		have to target the file server, not the HTML page.
-		HTML pages don't typically need the header.
-	*/
+	fmt.Print("Enter content selector: ")
+	cont, _ := reader.ReadString('\n')
 
-	for k, v := range maps {
-		fmt.Println(k, v)
-	}
-}
+	fmt.Print("Enter next selector: ")
+	next, _ := reader.ReadString('\n')
 
-func test2() {
-	// Sometimes image links require authorization that is generated on page load
-	// TODO: can a web crawler get this authorization?
-	// EDIT: yes, it seems that it can
-	url := ""
-	var err error
+	fmt.Print("Enter next attribute: ")
+	attr, _ := reader.ReadString('\n')
 
-	var res *http.Response
-	res, err = http.Get(url)
+	fmt.Print("Enter amount to download: ")
+	countStr, _ := reader.ReadString('\n')
+	count, _ := strconv.Atoi(countStr)
+	fmt.Println(cont)
+
+	crawler, err := crawler.New(url, next, attr, cont)
 	if err != nil {
 		fmt.Println(err)
 	}
-	defer res.Body.Close()
+	crawler.Start(count)
 
-	// The response doesn't supply a name, so either have the user provide one or reference the crawled page
-	// The URL should provide a file type
-	var file *os.File
-	file, err = os.Create("/mnt/c/Users/nilsg/Downloads/test.html")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	_, err = io.Copy(file, res.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-	file.Close()
-
-	fmt.Println("Success!")
-}
-
-func test3() {
-	url := ""
-	var err error
-
-	var res *http.Response
-	res, err = http.Get(url)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer res.Body.Close()
-
-	z := html.NewTokenizer(res.Body)
-	for {
-		tt := z.Next()
-		switch tt {
-		case html.StartTagToken:
-			tn, _ := z.TagName()
-			fmt.Println(tn)
-		case html.ErrorToken:
-			fmt.Println("Error!")
+	// TODO: this should be in a go routine
+	for i := 0; i < count; i++ {
+		body, ok := <-crawler.Output
+		if !ok {
+			fmt.Println("Output channel closed")
 			return
-		case html.EndTagToken:
-			fmt.Println("Success!")
+		}
+		defer body.Close()
+
+		// TODO: The response doesn't supply a name, so either have the user provide one or reference the crawled page
+		// TODO: The URL should provide a file type
+		var file *os.File
+		file, err = os.Create("/mnt/c/Users/nilsg/Downloads/test/" + strconv.Itoa(i) + ".jpg")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, body)
+		if err != nil {
+			fmt.Println(err)
 			return
 		}
 	}
-}
-
-func main() {
-	doc, err := goquery.NewDocument("")
-	if err != nil {
-		fmt.Println("An error has occurred!", err)
-	}
-
-	// Getting content
-	doc.Find("#image").Each(func(i int, s *goquery.Selection) {
-		h, e := s.Attr("src")
-		if !e {
-			fmt.Println("Couldn't get attribute!")
-		}
-
-		fmt.Println(h)
-	})
-
-	// Getting next
-	fmt.Println(doc.Find(".next_page").First().Attr("href"))
 }

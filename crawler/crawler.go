@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
@@ -20,7 +21,7 @@ type Crawler struct {
 	// Buffered channel of URLs to target
 	Targets chan string
 	// Buffered channel of content Readers
-	Output chan io.Reader
+	Output chan io.ReadCloser
 	// Selector (id, class, etc.) of the HTML element for next
 	next string
 	// Link can be href, src, etc.
@@ -37,9 +38,9 @@ func New(init, next, attr, cont string) (*Crawler, error) {
 		nextAttr: attr,
 		content:  cont,
 		ranges:   false,
-		count, 0,
-		Targets: make(chan string, 128),
-		Output:  make(chan io.Reader, 128),
+		count:    0,
+		Targets:  make(chan string, 128),
+		Output:   make(chan io.ReadCloser, 128),
 	}
 
 	var doc *goquery.Document
@@ -54,7 +55,11 @@ func New(init, next, attr, cont string) (*Crawler, error) {
 		return nil, fmt.Errorf("Couldn't get content source")
 	}
 
-	// Checking for "Accepts-Ranges"
+	/*
+		When checking for the "Accepts-Ranges" header, you
+		have to target the file server, not the HTML page.
+		HTML pages don't typically need the header.
+	*/
 	var res *http.Response
 	res, err = http.Head(url)
 	if err != nil {
@@ -81,7 +86,7 @@ func (c *Crawler) Start(count int) {
 			return
 		}
 
-		go Handle(url)
+		go c.Handle(url)
 
 		c.count++
 	}
@@ -99,8 +104,8 @@ func (c *Crawler) Handle(url string) {
 		return
 	}
 
-	go c.Next(url)
-	go c.Content(url)
+	go c.Next(doc)
+	go c.Content(doc)
 }
 
 // A function to get the next target (should be called first)
@@ -124,8 +129,7 @@ func (c *Crawler) Content(doc *goquery.Document) {
 		return
 	}
 
-	var res *http.Response
-	res, err = http.Get(get)
+	res, err := http.Get(get)
 	if err != nil {
 		fmt.Printf("Download of %v failed", doc.Url)
 		return
