@@ -79,24 +79,24 @@ func main() {
 
 	// TODO: this should be in a go routine
 	for i := 0; i < count; i++ {
-		body, ok := <-craw.Output
+		out, ok := <-craw.Output
 		if !ok {
 			fmt.Println("Output channel closed")
 			return
 		}
-		defer body.Close()
+		defer out.Body.Close()
 
 		// TODO: The response doesn't supply a name, so either have the user provide one or reference the crawled page
 		// TODO: The URL should provide a file type
 		var file *os.File
-		file, err = os.Create(path + pre + strconv.Itoa(i) + ".jpg")
+		file, err = os.Create(path + pre + strconv.Itoa(out.ID) + ".jpg")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		defer file.Close()
 
-		_, err = io.Copy(file, body)
+		_, err = io.Copy(file, out.Body)
 		if err != nil {
 			fmt.Println(err)
 			return

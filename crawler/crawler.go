@@ -13,6 +13,11 @@ import (
 // TODO: Add stop methods (number of downloads, linked page not the same, re-encounter page, etc.)
 // TODO: Use embedding with interfaces to allow functionality customization
 
+type Output struct {
+	ID   int
+	Body io.ReadCloser
+}
+
 type Crawler struct {
 	// Indicates whether the target website accepts ranges
 	ranges bool
@@ -21,7 +26,7 @@ type Crawler struct {
 	// Buffered channel of URLs to target
 	Targets chan string
 	// Buffered channel of content Readers
-	Output chan io.ReadCloser
+	Output chan *Output
 	// Selector (id, class, etc.) of the HTML element for next
 	next string
 	// Link can be href, src, etc.
@@ -40,7 +45,7 @@ func New(init, next, attr, cont string) (*Crawler, error) {
 		ranges:   false,
 		count:    0,
 		Targets:  make(chan string, 128),
-		Output:   make(chan io.ReadCloser, 128),
+		Output:   make(chan *Output, 128),
 	}
 
 	var doc *goquery.Document
@@ -86,14 +91,14 @@ func (c *Crawler) Start(count int) {
 			return
 		}
 
-		go c.Handle(url)
+		go c.Handle(url, c.count)
 
 		c.count++
 	}
 }
 
 // A function to be spun off for a target (gets next target as well)
-func (c *Crawler) Handle(url string) {
+func (c *Crawler) Handle(url string, count int) {
 	var err error
 
 	// TODO: Use channels to handle these errors
@@ -105,7 +110,7 @@ func (c *Crawler) Handle(url string) {
 	}
 
 	go c.Next(doc)
-	go c.Content(doc)
+	go c.Content(doc, count)
 }
 
 // A function to get the next target (should be called first)
@@ -121,7 +126,7 @@ func (c *Crawler) Next(doc *goquery.Document) {
 }
 
 // A function to get the current content (should handle range restarts if necessary)
-func (c *Crawler) Content(doc *goquery.Document) {
+func (c *Crawler) Content(doc *goquery.Document, count int) {
 	// TODO: Use channels to handle errors
 	get, ok := doc.Find(c.content).First().Attr("src")
 	if !ok {
@@ -135,5 +140,8 @@ func (c *Crawler) Content(doc *goquery.Document) {
 		return
 	}
 
-	c.Output <- res.Body
+	c.Output <- &Output{
+		ID:   count,
+		Body: res.Body,
+	}
 }
