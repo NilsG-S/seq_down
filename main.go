@@ -18,6 +18,7 @@ func main() {
 		next  string
 		attr  string
 		count int
+		pre   string
 	)
 
 	fmt.Print("Enter save path: ")
@@ -62,6 +63,13 @@ func main() {
 		return
 	}
 
+	fmt.Print("Enter file prefix: ")
+	_, err = fmt.Scanf("%s\n", &pre)
+	if err != nil {
+		fmt.Println("Reading prefix failed: ", err)
+		return
+	}
+
 	craw, err := crawler.New(url, next, attr, cont)
 	if err != nil {
 		fmt.Println("Setup failed: ", err)
@@ -81,7 +89,7 @@ func main() {
 		// TODO: The response doesn't supply a name, so either have the user provide one or reference the crawled page
 		// TODO: The URL should provide a file type
 		var file *os.File
-		file, err = os.Create(path + strconv.Itoa(i) + ".jpg")
+		file, err = os.Create(path + pre + strconv.Itoa(i) + ".jpg")
 		if err != nil {
 			fmt.Println(err)
 			return
